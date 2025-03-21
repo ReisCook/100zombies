@@ -1,0 +1,91 @@
+{
+    "id": "example_map",
+    "name": "Example Arena",
+    "description": "A simple arena to demonstrate the engine capabilities",
+    
+    "textures": [
+        { "id": "ground", "path": "assets/textures/terrain/ground.png" },
+        { "id": "crate", "path": "assets/textures/structures/crate.png" },
+        { "id": "skybox_right", "path": "assets/textures/skybox/space_right.png" },
+        { "id": "skybox_left", "path": "assets/textures/skybox/space_left.png" },
+        { "id": "skybox_top", "path": "assets/textures/skybox/space_top.png" },
+        { "id": "skybox_bottom", "path": "assets/textures/skybox/space_bottom.png" },
+        { "id": "skybox_front", "path": "assets/textures/skybox/space_front.png" },
+        { "id": "skybox_back", "path": "assets/textures/skybox/space_back.png" }
+    ],
+    
+    "models": [
+        { "id": "m249", "path": "assets/models/m249.glb" }
+    ],
+    
+    "skybox": {
+        "type": "cubemap",
+        "textures": [
+            "skybox_right", "skybox_left", 
+            "skybox_top", "skybox_bottom", 
+            "skybox_front", "skybox_back"
+        ]
+    },
+    
+    "lighting": {
+        "ambient": {
+            "color": "#404040",
+            "intensity": 0.5
+        },
+        "hemisphere": {
+            "skyColor": "#0088ff",
+            "groundColor": "#997766",
+            "intensity": 0.6
+        },
+        "directional": {
+            "color": "#ffffbb",
+            "intensity": 1.0,
+            "position": { "x": 5, "y": 10, "z": 7.5 },
+            "castShadow": true
+        }
+    },
+    
+    "playerSpawn": { "x": 0, "y": 2, "z": 0 },
+    
+    "terrain": {
+        "size": { "x": 100, "z": 100 },
+        "texture": "ground"
+    },
+    
+    "structures": [
+        {
+            "type": "box",
+            "position": { "x": 5, "y": 1, "z": 5 },
+            "scale": { "x": 2, "y": 2, "z": 2 },
+            "texture": "crate"
+        },
+        {
+            "type": "box",
+            "position": { "x": -5, "y": 1, "z": 5 },
+            "scale": { "x": 2, "y": 2, "z": 2 },
+            "texture": "crate"
+        },
+        {
+            "type": "box",
+            "position": { "x": 0, "y": 1, "z": -8 },
+            "scale": { "x": 2, "y": 2, "z": 2 },
+            "texture": "crate"
+        }
+    ],
+    
+    "weapons": [
+        {
+            "type": "m249",
+            "position": { "x": 2, "y": 1, "z": 1 },
+            "properties": {
+                "name": "M249 LMG",
+                "damage": 25,
+                "fireRate": 8,
+                "ammoCapacity": 100,
+                "reserveAmmo": 200,
+                "reloadTime": 4.0,
+                "viewPosition": { "x": 0.15, "y": -0.2, "z": -0.5 }
+            }
+        }
+    ]
+}

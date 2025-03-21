@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AAA First-Person Game Engine</title>
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loading-content">
+            <h1>Loading Game Engine</h1>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <p class="loading-text">Initializing...</p>
+        </div>
+    </div>
+    
+    <div id="game-container">
+        <!-- Game will be rendered here -->
+    </div>
+    
+    <div id="debug-overlay" class="hidden">
+        <div class="debug-panel">
+            <h3>Debug Info</h3>
+            <div id="debug-stats"></div>
+            <div id="debug-position"></div>
+            <div id="debug-velocity"></div>
+            <div id="debug-controls">
+                <button id="debug-toggle-wireframe">Toggle Wireframe</button>
+                <button id="debug-toggle-physics">Toggle Physics Debug</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="hud">
+        <div class="crosshair">+</div>
+        <div id="ammo-counter" class="ammo-counter"></div>
+        <div id="fps-counter" class="fps-counter"></div>
+        <div id="interaction-prompt" class="interaction-prompt"></div>
+    </div>
+    
+    <!-- Add this import map -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+    </script>
+    
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
