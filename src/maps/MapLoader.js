@@ -26,6 +26,9 @@ export class MapLoader {
             // Set player spawn
             this.setPlayerSpawn(mapData.playerSpawn);
             
+            // Configure enemy spawning
+            this.configureEnemySpawning(mapData.enemies);
+            
             // Spawn weapons defined in the map
             await this.spawnWeapons(mapData.weapons);
             
@@ -125,6 +128,34 @@ export class MapLoader {
         // Set up lighting
         if (mapData.lighting) {
             this.engine.renderer.lighting.setLightConfiguration(mapData.lighting);
+        }
+    }
+    
+    /**
+     * Configure enemy spawning based on map data
+     * @param {Object} enemiesData - Enemy configuration from map data
+     */
+    configureEnemySpawning(enemiesData) {
+        if (!enemiesData) return;
+        
+        // Configure zombie spawning if present
+        if (enemiesData.zombies) {
+            const zombieConfig = enemiesData.zombies;
+            
+            // Set enemy manager configuration
+            this.engine.enemyManager.configure({
+                maxEnemies: zombieConfig.count || 100,
+                preloadAtStart: zombieConfig.preloadAtStart !== false,
+                initialActiveCount: zombieConfig.initialActiveCount || 20,
+                activationRate: zombieConfig.activationRate || 2,
+                activationInterval: zombieConfig.activationInterval || 1000,
+                enemyTypes: zombieConfig.types || []
+            });
+            
+            // Configure spawn areas if defined
+            if (zombieConfig.spawnAreas && zombieConfig.spawnAreas.length > 0) {
+                this.engine.enemyManager.configureSpawnAreas(zombieConfig.spawnAreas);
+            }
         }
     }
     

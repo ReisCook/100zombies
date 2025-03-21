@@ -14,12 +14,14 @@ async function initGame() {
         // Initialize engine
         await engine.init();
         
-        // Load example map
+        // Load example map - this will configure enemies based on map data
         await engine.loadMap('example_map');
         
-        // CRITICAL: Preload zombies before starting the game
-        console.log("Preloading zombies...");
-        await engine.enemyManager.preloadZombies();
+        // CRITICAL: Preload zombies if configured in map
+        if (engine.enemyManager.config.preloadAtStart) {
+            console.log("Preloading zombies...");
+            await engine.enemyManager.preloadZombies();
+        }
         
         // Ensure loading screen displays for minimum time
         await engine.ensureLoadingComplete(500);
@@ -30,7 +32,7 @@ async function initGame() {
         
         // Activate initial zombies after a short delay to let the game stabilize
         setTimeout(() => {
-            engine.enemyManager.activatePreloadedZombies(20); // Start with 20 active zombies
+            engine.enemyManager.activatePreloadedZombies();
         }, 2000);
         
         // Make engine accessible from the console for debugging

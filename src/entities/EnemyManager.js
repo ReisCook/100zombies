@@ -6,19 +6,128 @@ export class EnemyManager {
     constructor(engine) {
         this.engine = engine;
         this.enemies = [];
-        this.maxEnemies = 100; // Increased from 5 to 100
+        
+        // Default configuration
+        this.config = {
+            maxEnemies: 100,
+            preloadAtStart: true,
+            initialActiveCount: 20,
+            activationRate: 2,
+            activationInterval: 1000
+        };
+        
+        // Enemy type definitions
+        this.enemyTypes = new Map();
+        
+        // Spawn areas
+        this.spawnAreas = [];
+        this.totalSpawnWeight = 0;
+        
         this.spawnCooldown = 5; // Seconds between spawns
         this.lastSpawnTime = 0;
-        this.spawnPoints = []; // Will be populated from map data
         this.enabled = true;
         this.preloadComplete = false;
-        this.zombiesToPreload = 100;
         this.preloadedZombies = [];
         this.preloadProgress = 0;
     }
     
     init() {
+        // Register default enemy types
+        this.registerDefaultEnemyTypes();
         console.log("Enemy manager initialized");
+    }
+    
+    /**
+     * Register default enemy types if none defined in map
+     */
+    registerDefaultEnemyTypes() {
+        // Standard zombie (default type)
+        this.enemyTypes.set('standard', {
+            id: 'standard',
+            weight: 1.0,
+            health: 100,
+            speed: 3.0,
+            damage: 20,
+            detectionRange: 15
+        });
+    }
+    
+    /**
+     * Configure the enemy manager with map-defined settings
+     * @param {Object} config - Configuration options
+     */
+    configure(config) {
+        // Merge with default config
+        this.config = {
+            ...this.config,
+            ...config
+        };
+        
+        console.log("Enemy manager configured:", this.config);
+        
+        // Process enemy types if provided
+        if (config.enemyTypes && config.enemyTypes.length > 0) {
+            // Clear default types
+            this.enemyTypes.clear();
+            
+            // Register all types from map data
+            for (const typeData of config.enemyTypes) {
+                this.enemyTypes.set(typeData.id, {
+                    id: typeData.id,
+                    weight: typeData.weight || 1.0,
+                    health: typeData.health || 100,
+                    speed: typeData.speed || 3.0,
+                    damage: typeData.damage || 20,
+                    detectionRange: typeData.detectionRange || 15
+                });
+            }
+        }
+    }
+    
+    /**
+     * Configure spawn areas from map data
+     * @param {Array} spawnAreaData - Spawn area definitions from map
+     */
+    configureSpawnAreas(spawnAreaData) {
+        this.spawnAreas = [];
+        this.totalSpawnWeight = 0;
+        
+        // Process each spawn area
+        for (const areaData of spawnAreaData) {
+            const area = {
+                id: areaData.id,
+                type: areaData.type || 'circle',
+                weight: areaData.weight || 1.0,
+                minDistance: areaData.minDistance || 30,
+                maxDistance: areaData.maxDistance || 80
+            };
+            
+            // Process area based on type
+            if (area.type === 'circle') {
+                area.center = new Vector3(
+                    areaData.center.x || 0,
+                    areaData.center.y || 0,
+                    areaData.center.z || 0
+                );
+                area.radius = areaData.radius || 30;
+            } else if (area.type === 'rectangle') {
+                area.center = new Vector3(
+                    areaData.center.x || 0,
+                    areaData.center.y || 0,
+                    areaData.center.z || 0
+                );
+                area.size = {
+                    x: areaData.size.x || 60,
+                    z: areaData.size.z || 60
+                };
+            }
+            
+            // Add to spawn areas array
+            this.spawnAreas.push(area);
+            this.totalSpawnWeight += area.weight;
+        }
+        
+        console.log(`Configured ${this.spawnAreas.length} spawn areas`);
     }
     
     async loadEnemyAssets() {
@@ -54,7 +163,7 @@ export class EnemyManager {
      * @returns {Promise<boolean>} Success status
      */
     async preloadZombies() {
-        console.log("Preloading", this.zombiesToPreload, "zombies...");
+        console.log("Preloading", this.config.maxEnemies, "zombies...");
         
         // Update loading UI
         const progressElement = document.querySelector('.progress');
@@ -69,33 +178,42 @@ export class EnemyManager {
         if (!player) return false;
         
         // Create zombies but keep them disabled
-        for (let i = 0; i < this.zombiesToPreload; i++) {
+        for (let i = 0; i < this.config.maxEnemies; i++) {
             // Update progress
-            this.preloadProgress = (i / this.zombiesToPreload) * 100;
+            this.preloadProgress = (i / this.config.maxEnemies) * 100;
             
             if (progressElement) {
                 progressElement.style.width = `${this.preloadProgress}%`;
             }
             
-            if (loadingText && i % 5 === 0) { // Update text every 5 zombies to avoid excessive DOM updates
+            if (loadingText && i % 5 === 0) { // Update text every 5 zombies
                 loadingText.textContent = `Preparing zombies... ${Math.floor(this.preloadProgress)}%`;
             }
             
-            // Find spawn point far from player (at least 30 units away)
-            const spawnPoint = this.getSpawnPointAwayFromPlayer(player.position, 30, 100);
+            // Get a random enemy type
+            const zombieType = this.getRandomEnemyType();
             
-            // Create and initialize zombie
-            const zombie = new Zombie(this.engine, spawnPoint);
+            // Get a spawn position from configured areas
+            const spawnPoint = this.getSpawnPosition(player.position);
+            
+            // Create zombie with type-specific properties
+            const zombie = new Zombie(this.engine, spawnPoint, {
+                health: zombieType.health,
+                speed: zombieType.speed,
+                damage: zombieType.damage,
+                detectionRange: zombieType.detectionRange,
+                type: zombieType.id
+            });
+            
+            // Initialize the zombie but keep it disabled
             await zombie.init(this.engine);
-            
-            // Important: Disable the zombie initially to improve performance
             zombie.enabled = false;
             
             // Store reference without adding to engine yet
             this.preloadedZombies.push(zombie);
             
-            // Allow UI to update by yielding execution for a moment
-            if (i % 10 === 0) { // Every 10 zombies
+            // Allow UI to update by yielding execution
+            if (i % 10 === 0) {
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
         }
@@ -105,20 +223,24 @@ export class EnemyManager {
             loadingText.textContent = `Zombies ready! Starting game...`;
         }
         
-        console.log("Preloaded", this.zombiesToPreload, "zombies successfully");
+        console.log("Preloaded", this.config.maxEnemies, "zombies successfully");
         this.preloadComplete = true;
         return true;
     }
     
     /**
      * Activate preloaded zombies and add them to the game world
-     * @param {number} initialActiveCount - How many zombies to activate initially
      */
-    activatePreloadedZombies(initialActiveCount = 20) {
+    activatePreloadedZombies() {
         console.log("Activating zombies...");
         
         // Activate initial batch
-        for (let i = 0; i < Math.min(initialActiveCount, this.preloadedZombies.length); i++) {
+        const initialCount = Math.min(
+            this.config.initialActiveCount, 
+            this.preloadedZombies.length
+        );
+        
+        for (let i = 0; i < initialCount; i++) {
             const zombie = this.preloadedZombies[i];
             
             // Enable and add to the game world
@@ -128,7 +250,7 @@ export class EnemyManager {
         }
         
         // Schedule the rest to be activated gradually
-        this.scheduleRemainingZombies(initialActiveCount);
+        this.scheduleRemainingZombies(initialCount);
     }
     
     /**
@@ -145,41 +267,92 @@ export class EnemyManager {
                 return;
             }
             
-            // Activate next 2 zombies
-            for (let i = 0; i < 2 && index < this.preloadedZombies.length; i++, index++) {
+            // Activate next batch of zombies
+            for (let i = 0; i < this.config.activationRate && index < this.preloadedZombies.length; i++, index++) {
                 const zombie = this.preloadedZombies[index];
                 zombie.enabled = true;
                 this.engine.entityManager.addEntity(zombie);
                 this.enemies.push(zombie);
             }
-        }, 1000); // Add 2 new zombies every second
+        }, this.config.activationInterval);
     }
     
     /**
-     * Find a spawn point far away from player
-     * @param {Vector3} playerPosition - Player's position
-     * @param {number} minDistance - Minimum distance from player
-     * @param {number} maxDistance - Maximum distance from player
-     * @returns {Vector3} Spawn position
+     * Get a spawn position from configured areas
+     * @param {Vector3} playerPosition - Current player position
+     * @returns {Vector3} - Spawn position
      */
-    getSpawnPointAwayFromPlayer(playerPosition, minDistance = 30, maxDistance = 100) {
-        // If we have predefined spawn points, use those
-        if (this.spawnPoints.length > 0) {
-            // Filter spawn points that are far enough from player
-            const validSpawnPoints = this.spawnPoints.filter(point => 
-                point.distanceTo(playerPosition) > minDistance &&
-                point.distanceTo(playerPosition) < maxDistance
-            );
-            
-            if (validSpawnPoints.length > 0) {
-                // Return a random valid spawn point
-                return validSpawnPoints[Math.floor(Math.random() * validSpawnPoints.length)];
+    getSpawnPosition(playerPosition) {
+        // If no spawn areas are configured, use default circle around player
+        if (this.spawnAreas.length === 0) {
+            return this.getDefaultSpawnPosition(playerPosition);
+        }
+        
+        // Select a spawn area based on weights
+        const area = this.selectWeightedSpawnArea();
+        
+        // Get random position from the area
+        return this.getPositionInArea(area, playerPosition);
+    }
+    
+    /**
+     * Select a random spawn area based on weights
+     * @returns {Object} - Selected spawn area
+     */
+    selectWeightedSpawnArea() {
+        const randomValue = Math.random() * this.totalSpawnWeight;
+        let weightSum = 0;
+        
+        for (const area of this.spawnAreas) {
+            weightSum += area.weight;
+            if (randomValue <= weightSum) {
+                return area;
             }
         }
         
-        // Fallback: generate a random position around the player but far enough away
+        // Fallback to first area if something goes wrong
+        return this.spawnAreas[0];
+    }
+    
+    /**
+     * Get a random position within a spawn area
+     * @param {Object} area - Spawn area definition
+     * @param {Vector3} playerPosition - Current player position
+     * @returns {Vector3} - Position within the area
+     */
+    getPositionInArea(area, playerPosition) {
+        if (area.type === 'circle') {
+            // Get random position inside circle
+            const angle = Math.random() * Math.PI * 2;
+            const distanceFromCenter = Math.random() * area.radius;
+            
+            return new Vector3(
+                area.center.x + Math.cos(angle) * distanceFromCenter,
+                area.center.y,
+                area.center.z + Math.sin(angle) * distanceFromCenter
+            );
+        } 
+        else if (area.type === 'rectangle') {
+            // Get random position inside rectangle
+            return new Vector3(
+                area.center.x + (Math.random() * 2 - 1) * area.size.x / 2,
+                area.center.y,
+                area.center.z + (Math.random() * 2 - 1) * area.size.z / 2
+            );
+        }
+        
+        // Fallback to default position
+        return this.getDefaultSpawnPosition(playerPosition);
+    }
+    
+    /**
+     * Get default spawn position when no areas are defined
+     * @param {Vector3} playerPosition - Current player position
+     * @returns {Vector3} - Spawn position
+     */
+    getDefaultSpawnPosition(playerPosition) {
         const angle = Math.random() * Math.PI * 2;
-        const distance = minDistance + Math.random() * (maxDistance - minDistance);
+        const distance = 30 + Math.random() * 50; // Between 30-80 units away
         
         return new Vector3(
             playerPosition.x + Math.cos(angle) * distance,
@@ -188,10 +361,45 @@ export class EnemyManager {
         );
     }
     
-    async spawnZombie(position) {
+    /**
+     * Get a random enemy type based on weights
+     * @returns {Object} - Enemy type definition
+     */
+    getRandomEnemyType() {
+        // Get total weight
+        let totalWeight = 0;
+        for (const type of this.enemyTypes.values()) {
+            totalWeight += type.weight;
+        }
+        
+        // Select type based on weight
+        const randomValue = Math.random() * totalWeight;
+        let currentWeight = 0;
+        
+        for (const type of this.enemyTypes.values()) {
+            currentWeight += type.weight;
+            if (randomValue <= currentWeight) {
+                return type;
+            }
+        }
+        
+        // Fallback to first type
+        return this.enemyTypes.values().next().value;
+    }
+    
+    async spawnZombie(position, typeId = 'standard') {
         try {
-            // Create zombie
-            const zombie = new Zombie(this.engine, position);
+            // Get type definition
+            const typeData = this.enemyTypes.get(typeId) || this.enemyTypes.get('standard');
+            
+            // Create zombie with type properties
+            const zombie = new Zombie(this.engine, position, {
+                health: typeData.health,
+                speed: typeData.speed,
+                damage: typeData.damage,
+                detectionRange: typeData.detectionRange,
+                type: typeData.id
+            });
             
             // Initialize zombie
             await zombie.init(this.engine);
@@ -200,16 +408,12 @@ export class EnemyManager {
             this.engine.entityManager.addEntity(zombie);
             this.enemies.push(zombie);
             
-            console.log(`Spawned zombie at ${position.x}, ${position.y}, ${position.z}`);
+            console.log(`Spawned ${typeData.id} zombie at ${position.x}, ${position.y}, ${position.z}`);
             return zombie;
         } catch (error) {
             console.error("Failed to spawn zombie:", error);
             return null;
         }
-    }
-    
-    setSpawnPoints(points) {
-        this.spawnPoints = points;
     }
     
     clear() {

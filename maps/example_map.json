@@ -87,5 +87,79 @@
                 "viewPosition": { "x": 0.15, "y": -0.2, "z": -0.5 }
             }
         }
-    ]
+    ],
+    
+    "enemies": {
+        "zombies": {
+            "count": 100,
+            "preloadAtStart": true,
+            "initialActiveCount": 20,
+            "activationRate": 2,
+            "activationInterval": 1000,
+            "spawnAreas": [
+                {
+                    "id": "north_area",
+                    "type": "circle",
+                    "center": { "x": 0, "y": 0, "z": -50 },
+                    "radius": 30,
+                    "minDistance": 30,
+                    "maxDistance": 80,
+                    "weight": 2.0
+                },
+                {
+                    "id": "east_area",
+                    "type": "circle",
+                    "center": { "x": 50, "y": 0, "z": 0 },
+                    "radius": 30,
+                    "minDistance": 30,
+                    "maxDistance": 80,
+                    "weight": 1.0
+                },
+                {
+                    "id": "south_area",
+                    "type": "circle",
+                    "center": { "x": 0, "y": 0, "z": 50 },
+                    "radius": 30,
+                    "minDistance": 30,
+                    "maxDistance": 80,
+                    "weight": 1.0
+                },
+                {
+                    "id": "west_area",
+                    "type": "circle",
+                    "center": { "x": -50, "y": 0, "z": 0 },
+                    "radius": 30,
+                    "minDistance": 30,
+                    "maxDistance": 80,
+                    "weight": 1.0
+                }
+            ],
+            "types": [
+                {
+                    "id": "standard",
+                    "weight": 0.7,
+                    "health": 100,
+                    "speed": 3.0,
+                    "damage": 20,
+                    "detectionRange": 15
+                },
+                {
+                    "id": "runner",
+                    "weight": 0.2,
+                    "health": 70,
+                    "speed": 5.0,
+                    "damage": 15,
+                    "detectionRange": 20
+                },
+                {
+                    "id": "tank",
+                    "weight": 0.1,
+                    "health": 200,
+                    "speed": 2.0,
+                    "damage": 35,
+                    "detectionRange": 12
+                }
+            ]
+        }
+    }
 }

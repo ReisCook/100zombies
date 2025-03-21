@@ -12,10 +12,12 @@ const LoopOnce = 2200; // THREE.LoopOnce
 const LoopRepeat = 2201; // THREE.LoopRepeat
 
 export class Zombie {
-    constructor(engine, position = new Vector3(0, 0, 0)) {
+// src/entities/Zombie.js (modified constructor to accept properties)
+    constructor(engine, position = new Vector3(0, 0, 0), properties = {}) {
         // Core properties
         this.engine = engine;
         this.type = 'zombie';
+        this.zombieType = properties.type || 'standard';
         this.id = null; // Will be assigned by EntityManager
         this.position = position.clone();
         this.rotation = new Euler(0, 0, 0);
@@ -38,24 +40,28 @@ export class Zombie {
         this.timeInCurrentState = 0;
         this.timeSinceSpawn = 0;
         
-        // Movement properties
-        this.speed = { walk: 2.0, run: 4.0 };
+        // Movement properties - can be overridden by properties
+        this.speed = { 
+            walk: properties.speed ? properties.speed * 0.6 : 2.0, 
+            run: properties.speed || 3.0 
+        };
         this.currentSpeed = 0;
         this.moveDirection = new Vector3();
         this.turnSpeed = 4.0;
         
         // Player tracking
         this.canSeePlayer = false;
-        this.detectionRange = 15; // How far away zombie can detect player
+        this.detectionRange = properties.detectionRange || 15;
         this.updatePerceptionTime = 0;
         this.perceptionUpdateRate = 0.2;
         this.lastKnownPlayerPosition = null;
         
         // Combat properties
-        this.health = 100;
-        this.maxHealth = 100;
+        this.health = properties.health || 100;
+        this.maxHealth = properties.health || 100;
         this.attackRange = 1.8;
         this.attackCooldown = 1.2;
+        this.attackDamage = properties.damage || 20;
         this.lastAttackTime = 0;
         
         // Animation properties
@@ -67,7 +73,7 @@ export class Zombie {
         this.skeletonHelper = null;
         
         // Performance optimization properties
-        this.updatePriority = 'high'; // Can be 'high', 'medium', 'low'
+        this.updatePriority = 'high'; 
         this.skipAnimationWhenFar = false;
         this.farDistance = 50;
         this.skipPhysicsWhenVeryFar = false;
@@ -80,7 +86,7 @@ export class Zombie {
         // Debug properties
         this.debugMode = false;
         
-        console.log("Zombie created at", position.x, position.y, position.z);
+        console.log(`${this.zombieType} zombie created at`, position.x, position.y, position.z);
     }
     
     async init(engine) {
